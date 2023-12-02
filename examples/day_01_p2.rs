@@ -4,7 +4,7 @@ use boolinator::Boolinator;
 
 fn main() {
     println!("Hello day 1 part 2!");
-    let input = read_to_string("input").unwrap();
+    let input = read_to_string("inputs/day_01/input").unwrap();
 
     let numbers_as_words = [
         "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"

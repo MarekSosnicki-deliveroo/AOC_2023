@@ -2,7 +2,7 @@ use std::fs::read_to_string;
 
 fn main() {
     println!("Hello day 1!");
-    let input = read_to_string("input").unwrap();
+    let input = read_to_string("inputs/day_01/input").unwrap();
 
     let result : usize = input.lines().map(|line| {
         let first = line.chars().find(|c| c.is_digit(10)).unwrap();
