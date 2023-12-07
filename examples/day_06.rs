@@ -63,5 +63,5 @@ fn calculate(time_i32: i32, distance_i32: i32) -> i32 {
     let time_min = time_min.ceil() as i32;
     let time_max = time_max.floor() as i32;
 
-    time_max - time_min + 1;
+    time_max - time_min + 1
 }
