@@ -135,13 +135,7 @@ fn main() {
 
     let grid_with_loop = visited_grid.clone();
 
-    let mut visited_grid = (0..grid.len() * 3)
-        .map(|_| vec![false; grid[0].len() * 3])
-        .collect_vec();
-
-    // These cords are hardcoded to my example. for some reason If I was not starting from the center, but from the edge
-    // the result was wrong. I have no idea why.
-    let mut to_visit_queue = vec![Cords::new(68 * 3, 73 * 3)];
+    let mut to_visit_queue = vec![Cords::new(0, 0)];
 
     while !to_visit_queue.is_empty() {
         let visiting_now = to_visit_queue.remove(0);
@@ -150,9 +144,6 @@ fn main() {
             continue;
         }
 
-        if grid_with_loop[visiting_now.row][visiting_now.column] {
-            continue;
-        }
         visited_grid[visiting_now.row][visiting_now.column] = true;
 
         let row_before = visiting_now.row.saturating_sub(1);
@@ -160,25 +151,16 @@ fn main() {
         let row_after = (visiting_now.row + 1).min(visited_grid.len() - 1);
         let column_after = (visiting_now.column + 1).min(visited_grid[0].len() - 1);
 
-        for row in row_before..=row_after {
-            for column in column_before..=column_after {
-                let cord = Cords::new(row, column);
-                if !visited_grid[cord.row][cord.column] {
-                    to_visit_queue.push(cord);
-                }
+        for cord in [
+            Cords::new(row_before, visiting_now.column),
+            Cords::new(row_after, visiting_now.column),
+            Cords::new(visiting_now.row, column_before),
+            Cords::new(visiting_now.row, column_after),
+        ] {
+            if !visited_grid[cord.row][cord.column] {
+                to_visit_queue.push(cord);
             }
         }
-
-        // for cord in [
-        //     Cords::new(row_before, visiting_now.column),
-        //     Cords::new(row_after, visiting_now.column),
-        //     Cords::new(visiting_now.row, column_before),
-        //     Cords::new(visiting_now.row, column_after),
-        // ] {
-        //     if !visited_grid[cord.row][cord.column] {
-        //         to_visit_queue.push(cord);
-        //     }
-        // }
     }
 
     println!("Result grid");
@@ -195,11 +177,11 @@ fn main() {
         .map(|small_row| {
             (0..grid[0].len())
                 .map(|small_column| {
-                    !iproduct!(
+                    iproduct!(
                         (small_row * 3)..(small_row * 3 + 2),
                         (small_column * 3)..(small_column * 3 + 2)
                     )
-                    .all(|(visited_row, visited_col)| visited_grid[visited_row][visited_col])
+                    .any(|(visited_row, visited_col)| visited_grid[visited_row][visited_col])
                 })
                 .collect()
         })
@@ -388,49 +370,5 @@ fn move_by(start: Cords, cell: Cords, cell_value: char) -> Option<Cords> {
             );
             None
         }
-    }
-}
-
-fn is_crossing_loop(from: Cords, to: Cords, value: char) -> bool {
-    match value {
-        '|' => from.column == to.column,
-
-        '-' => from.row == to.row,
-        'L' => {
-            (from.column == to.column && from.row > to.row)
-                || (from.row == to.row && from.column > to.column)
-        }
-
-        'J' => {
-            if from.column == to.column && from.row < to.row {
-                true
-            } else if from.row == to.row && from.column < to.column {
-                true
-            } else {
-                false
-            }
-        }
-
-        '7' => {
-            if from.column == to.column && from.row > to.row {
-                true
-            } else if from.row == to.row && from.column < to.column {
-                true
-            } else {
-                false
-            }
-        }
-
-        'F' => {
-            if from.column == to.column && from.row > to.row {
-                true
-            } else if from.row == to.row && from.column > to.column {
-                true
-            } else {
-                false
-            }
-        }
-
-        _ => false,
     }
 }
