@@ -69,7 +69,7 @@ fn main() {
         })
         .sum();
 
-    println!("result\n: {:?}", result);
+    println!("Result is: {:?}", result);
 }
 
 fn expand_galaxies(input: &Vec<Vec<bool>>) -> Vec<Vec<bool>> {
