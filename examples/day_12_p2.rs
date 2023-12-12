@@ -1,5 +1,7 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 use sscanf::sscanf;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
 /*
@@ -54,14 +56,18 @@ fn main() {
 
     let start = std::time::Instant::now();
 
-    let result: usize = input.lines().map(|line| no_of_possibilities(line)).sum();
+    let input = input.lines().map(|line| line.to_string()).collect_vec();
+    let result: u64 = input
+        .par_iter()
+        .map(|line| no_of_possibilities(&line))
+        .sum();
 
-    println!("Finished in {} us", start.elapsed().as_secs());
+    println!("Finished in {} s", start.elapsed().as_secs());
 
     println!("Result: {}", result);
 }
 
-fn no_of_possibilities(line: &str) -> usize {
+fn no_of_possibilities(line: &str) -> u64 {
     let (group_str, expected_groups_str) = sscanf!(line, "{str} {str}").unwrap();
 
     let group_str = vec![group_str; 5].join("?");
@@ -78,6 +84,9 @@ fn no_of_possibilities(line: &str) -> usize {
 
     let no_of_hashes = row_with_unknowns.iter().filter(|c| **c == '#').count();
     let missing_no_of_hashes = expected_groups.iter().sum::<usize>() - no_of_hashes;
+    let remaining_question_marks = row_with_unknowns.iter().filter(|c| **c == '?').count();
+
+    let mut cache: HashMap<(usize, usize, usize), u64> = HashMap::new();
 
     let result = recursive_find_no(
         &row_with_unknowns,
@@ -86,6 +95,8 @@ fn no_of_possibilities(line: &str) -> usize {
         0,
         0,
         missing_no_of_hashes,
+        remaining_question_marks,
+        &mut cache,
     );
 
     println!("Result for {line} is <<{result}>>");
@@ -100,10 +111,26 @@ fn recursive_find_no(
     mut current_group_size: usize,
     mut current_group_index: usize,
     missing_no_of_hashes: usize,
-) -> usize {
+    remaining_question_marks: usize,
+    cache: &mut HashMap<(usize, usize, usize), u64>,
+) -> u64 {
+    if remaining_question_marks < missing_no_of_hashes {
+        return 0;
+    }
+    if let Some(result) = cache.get(&(
+        current_character_index,
+        current_group_size,
+        current_group_index,
+    )) {
+        return *result;
+    }
+
     while current_character_index < row.len() && row[current_character_index] != '?' {
         if row[current_character_index] == '#' {
             current_group_size += 1;
+            if &current_group_size > expected_groups.get(current_group_index).unwrap_or(&0) {
+                return 0;
+            }
         } else if current_group_size > 0 {
             if expected_groups.get(current_group_index) != Some(&current_group_size) {
                 return 0;
@@ -138,11 +165,13 @@ fn recursive_find_no(
                     0,
                     current_groups_with_dot,
                     missing_no_of_hashes,
+                    remaining_question_marks - 1,
+                    cache,
                 )
             })
             .unwrap_or(0);
 
-        if missing_no_of_hashes == 0 {
+        let result = if missing_no_of_hashes == 0 {
             no_of_combinations_when_current_is_dot
         } else {
             let no_of_combinations_when_curren_is_hash = recursive_find_no(
@@ -152,10 +181,22 @@ fn recursive_find_no(
                 current_group_size + 1,
                 current_group_index,
                 missing_no_of_hashes - 1,
+                remaining_question_marks - 1,
+                cache,
             );
 
             no_of_combinations_when_curren_is_hash + no_of_combinations_when_current_is_dot
-        }
+        };
+
+        cache.insert(
+            (
+                current_character_index,
+                current_group_size,
+                current_group_index,
+            ),
+            result,
+        );
+        result
     } else {
         if current_group_size > 0 {
             if expected_groups.get(current_group_index) == Some(&current_group_size)
