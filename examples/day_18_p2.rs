@@ -108,7 +108,9 @@ fn main() {
 
     let mut current_point: Point = Point { row: 0, column: 0 };
 
-    let use_v1_reading = true;
+    let use_v1_reading = false;
+
+    let mut trenches_dig_area = 0;
 
     input.lines().for_each(|line| {
         let (dir_str, steps_old, steps, direction) =
@@ -132,6 +134,7 @@ fn main() {
 
         println!("New point {:?}", new_point);
 
+        trenches_dig_area += steps;
         match direction {
             Direction::Left | Direction::Right => horizontal_lines.push(HorizontalLine {
                 row: current_point.row,
@@ -144,6 +147,8 @@ fn main() {
         corner_points.push(new_point);
         current_point = new_point;
     });
+
+    println!("Trenches dig area {}", trenches_dig_area);
 
     println!("Corner points: {:?}", corner_points);
 
@@ -185,9 +190,9 @@ fn main() {
         println!("Dig area {:?}", digged_area);
 
         for current_filling in current_filling_columns.iter_mut() {
-            digged_area += (current_filling.column_end - current_filling.column_start + 1)
-                * (current_row - current_filling.row_start + 1);
-            current_filling.row_start = current_row + 1;
+            digged_area += (current_filling.column_end - current_filling.column_start)
+                * (current_row - current_filling.row_start);
+            current_filling.row_start = current_row;
         }
 
         println!("Dig area after {:?}", digged_area);
@@ -195,35 +200,49 @@ fn main() {
         for line in all_horizontal_lines_on_this_row {
             let mut used_ranges = vec![];
 
+            println!("Analysing line {:?}", line);
             while let Some(current_filling_that_is_intersecting_position) = current_filling_columns
                 .iter()
                 .position(|current_filling: &CurrentFilling| {
-                    (current_filling.column_start >= line.column_from
-                        && current_filling.column_start < line.column_to)
-                        || (current_filling.column_end > line.column_from
+                    (current_filling.column_start >= line.column_from + 1
+                        && current_filling.column_start <= line.column_to)
+                        || (current_filling.column_end > line.column_from + 1
                             && current_filling.column_end <= line.column_to)
                 })
             {
                 let found_filling: CurrentFilling =
                     current_filling_columns.remove(current_filling_that_is_intersecting_position);
                 // filling inside the line
-                let fill_column_start = found_filling.column_start.max(line.column_from);
+                let fill_column_start = found_filling.column_start.max(line.column_from + 1);
                 let fill_column_end = found_filling.column_end.min(line.column_to);
+
+                println!("Removed filling {:?}", found_filling);
+                println!("Fill column start {}", fill_column_start);
+                println!("Fill column end {}", fill_column_end);
 
                 if fill_column_start > found_filling.column_start {
                     current_filling_columns.push(CurrentFilling {
                         row_start: found_filling.row_start,
                         column_start: found_filling.column_start,
-                        column_end: fill_column_start,
+                        column_end: fill_column_start - 1,
                     });
+
+                    println!(
+                        "1. Added filling {:?}",
+                        current_filling_columns.last().unwrap()
+                    );
                 }
 
                 if fill_column_end < found_filling.column_end {
                     current_filling_columns.push(CurrentFilling {
                         row_start: found_filling.row_start,
-                        column_start: fill_column_end,
+                        column_start: fill_column_end + 1,
                         column_end: found_filling.column_end,
                     });
+                    println!(
+                        "2. Added filling {:?}",
+                        current_filling_columns.last().unwrap()
+                    );
                 }
                 used_ranges.push((fill_column_start, fill_column_end));
             }
@@ -235,42 +254,49 @@ fn main() {
             println!("Used ranges {:?}", used_ranges);
 
             while let Some((used_range_start, used_range_end)) = used_ranges.pop() {
-                if used_range_start > current_range_start {
+                if used_range_start > current_range_start + 1 {
                     current_filling_columns.push(CurrentFilling {
                         row_start: current_row + 1,
                         column_start: current_range_start,
                         column_end: used_range_start - 1,
                     });
                     println!(
-                        "!! Adding dig area {}",
-                        used_range_start - current_range_start - 1
+                        "3. Added filling {:?}",
+                        current_filling_columns.last().unwrap()
                     );
-                    digged_area += used_range_start - current_range_start - 1;
                 }
-
                 current_range_start = used_range_end + 1;
             }
 
-            if current_range_start < line.column_to {
+            if current_range_start + 1 < line.column_to {
                 current_filling_columns.push(CurrentFilling {
                     row_start: current_row + 1,
-                    column_start: current_range_start,
+                    column_start: current_range_start + 1,
                     column_end: line.column_to,
                 });
                 println!(
-                    "END Adding dig area {}",
-                    line.column_to - current_range_start + 1
+                    "4. Added filling {:?}",
+                    current_filling_columns.last().unwrap()
                 );
-                digged_area += line.column_to - current_range_start + 1;
             }
 
             current_filling_columns.sort_by_key(|filling| filling.column_start);
+        }
+
+        if let Some(next_row) = horizontal_lines.iter().find(|line| line.row > current_row) {
+            current_row += 1;
+            for current_filling in current_filling_columns.iter_mut() {
+                digged_area += (current_filling.column_end - current_filling.column_start)
+                    * (current_row - current_filling.row_start);
+                current_filling.row_start = current_row;
+            }
+
             current_filling_columns =
                 current_filling_columns
                     .iter()
                     .fold(Vec::new(), |mut folded, current| {
                         if let Some(last) = folded.last_mut() {
-                            if last.column_end == current.column_start {
+                            if last.column_end + 1 == current.column_start {
                                 last.column_end = current.column_end;
                             } else {
                                 folded.push(current.clone());
@@ -280,18 +306,14 @@ fn main() {
                             folded.push(current.clone());
                             folded
                         }
-                    })
-        }
-
-        println!("Fillings after {:?}", current_filling_columns);
-        println!("Dig area after {:?}", digged_area);
-
-        if let Some(next_row) = horizontal_lines.iter().find(|line| line.row > current_row) {
+                    });
+            println!("Fillings after {:?}", current_filling_columns);
+            println!("Dig area after {:?}", digged_area);
             current_row = next_row.row;
         } else {
             break;
         }
     }
 
-    println!("Result is {}", digged_area);
+    println!("Result is {}", digged_area + trenches_dig_area);
 }
