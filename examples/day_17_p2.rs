@@ -37,7 +37,7 @@ impl ToVisit {
         }
 
         if self.direction == direction {
-            if self.no_of_other_moves_in_this_direction > 1 {
+            if self.no_of_other_moves_in_this_direction > 8 {
                 None
             } else {
                 Some(ToVisit {
@@ -49,12 +49,16 @@ impl ToVisit {
                 })
             }
         } else {
-            Some(ToVisit {
-                row: new_row,
-                column: new_column,
-                direction: direction,
-                no_of_other_moves_in_this_direction: 0,
-            })
+            if self.no_of_other_moves_in_this_direction < 3 {
+                None
+            } else {
+                Some(ToVisit {
+                    row: new_row,
+                    column: new_column,
+                    direction: direction,
+                    no_of_other_moves_in_this_direction: 0,
+                })
+            }
         }
     }
 }
@@ -76,6 +80,12 @@ fn main() {
     // 1224686865563\n\
     // 2546548887735\n\
     // 4322674655533";
+
+    //     let input = "111111111111\n\
+    // 999999999991\n\
+    // 999999999991\n\
+    // 999999999991\n\
+    // 999999999991";
 
     // let input = "241343231\n\
     // 321545353";
@@ -120,8 +130,7 @@ fn main() {
     distances_map[0][1].insert((Direction::Down, 0), grid[1][0]);
 
     while !to_visit_queue.is_empty() {
-        to_visit_queue
-            .sort_by_key(|(v, distance_to)| (*distance_to, v.no_of_other_moves_in_this_direction));
+        to_visit_queue.sort_by_key(|(_v, distance_to)| *distance_to);
         let (visiting, distance_to) = to_visit_queue.remove(0);
 
         if visited_map[visiting.row as usize][visiting.column as usize].contains(&(
@@ -131,7 +140,7 @@ fn main() {
             continue;
         }
 
-        // println!("Visiting {visiting:?} distance_to: {distance_to}");
+        println!("Visiting {visiting:?} distance_to: {distance_to}");
 
         visited_map[visiting.row as usize][visiting.column as usize].insert((
             visiting.direction,
@@ -183,12 +192,18 @@ fn main() {
     //     println!("{:?}", row);
     // }
 
+    println!(
+        "Distances of last {:?}",
+        distances_map.last().unwrap().last().unwrap()
+    );
+
     let ((last_dir, last_no_of_moves), result) = distances_map
         .last()
         .unwrap()
         .last()
         .unwrap()
         .iter()
+        .filter(|((_, no_of_moves), _)| *no_of_moves >= 3)
         .min_by_key(|(_, distance)| *distance)
         .unwrap();
     let mut grid_with_route = vec![vec!['.'; grid[0].len()]; grid.len()];
