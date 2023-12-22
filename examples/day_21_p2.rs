@@ -71,20 +71,36 @@ struct Point {
 
 fn main() {
     println!("Hello day 1!");
-    let input = read_to_string("inputs/day_21/input").unwrap();
+    let no_of_steps = 26501365;
+    // let no_of_steps = 1000;
 
-    let input = "\
-    ...........\n\
-    .....###.#.\n\
-    .###.##..#.\n\
-    ..#.#...#..\n\
-    ....#.#....\n\
-    .##..S####.\n\
-    .##..#...#.\n\
-    .......##..\n\
-    .##.#.####.\n\
-    .##..##.##.\n\
-    ...........";
+    let input = read_to_string("inputs/day_21/input")
+        .unwrap()
+        .trim()
+        .to_string();
+
+    // let input = "\
+    // ...........\n\
+    // .....###.#.\n\
+    // .###.##..#.\n\
+    // ..#.#...#..\n\
+    // ....#.#....\n\
+    // .##..S####.\n\
+    // .##..#...#.\n\
+    // .......##..\n\
+    // .##.#.####.\n\
+    // .##..##.##.\n\
+    // ...........";
+
+    /*
+    0001222
+    0001222
+    0001222     [[0], [0,0], [0,0,0
+    333X444
+    5556777
+    5556777
+
+     */
 
     let grid_char = input
         .lines()
@@ -122,22 +138,22 @@ fn main() {
         "Grid is not square that breaks some assumptions"
     );
 
-    for row_index in 1..(grid_with_rocks.len() - 1) {
-        if grid_with_rocks[row_index].iter().all(|v| !*v) {
-            panic!("Row {} is empty", row_index);
-        }
-    }
+    // for row_index in 1..(grid_with_rocks.len() - 1) {
+    //     if grid_with_rocks[row_index].iter().all(|v| !*v) {
+    //         panic!("Row {} is empty", row_index);
+    //     }
+    // }
 
-    for column_index in 1..(grid_with_rocks[1].len() - 1) {
-        for row_index in 0..grid_with_rocks.len() {
-            if grid_with_rocks[row_index][column_index] {
-                break;
-            }
-            if row_index == grid_with_rocks.len() - 1 {
-                panic!("Column {} is empty", column_index);
-            }
-        }
-    }
+    // for column_index in 1..(grid_with_rocks[1].len() - 1) {
+    //     for row_index in 0..grid_with_rocks.len() {
+    //         if grid_with_rocks[row_index][column_index] {
+    //             break;
+    //         }
+    //         if row_index == grid_with_rocks.len() - 1 {
+    //             panic!("Column {} is empty", column_index);
+    //         }
+    //     }
+    // }
 
     println!(
         "grid_with_rocks:\n {}",
@@ -154,10 +170,11 @@ fn main() {
         no_of_rows_in_grid, no_of_coulmns_in_grid
     );
 
-    let no_of_added_grids_for_each_side = 20;
+    let no_of_added_grids_for_each_side = 0;
 
     // We will start by making grid with 10 added to each side, so 21 total
-    let bigger_grid = make_bigger_grid(&grid_with_rocks, no_of_added_grids_for_each_side);
+    // let bigger_grid = make_bigger_grid(&grid_with_rocks, no_of_added_grids_for_each_side);
+    let bigger_grid = grid_with_rocks.clone();
 
     let distances_map = run_dijkstra(start_point.clone(), &grid_with_rocks);
 
@@ -181,8 +198,6 @@ fn main() {
         column: start_point.column
             + (no_of_coulmns_in_grid as usize) * no_of_added_grids_for_each_side,
     };
-    let no_of_rows_in_bigger_grid = bigger_grid.len() as i64;
-    let no_of_columns_in_bigger_grid = bigger_grid[0].len() as i64;
 
     println!("Calculating distances for bigger grid");
 
@@ -199,9 +214,6 @@ fn main() {
         .flatten()
         .filter(|v| **v != i64::MAX && **v % 2 == 1)
         .count() as i64;
-
-    // let no_of_steps = 26501365;
-    let no_of_steps = 5000;
 
     println!(
         "No of even distances in grid: {}",
@@ -266,6 +278,7 @@ fn main() {
     } else {
         no_of_odd_distances_in_grid
     };
+
     no_of_possible_visits += no_of_possible_visits_top_right
         + no_of_possible_visits_bottom_right
         + no_of_possible_visits_top_left
@@ -283,40 +296,21 @@ fn top_grids(
     distances_for_bigger_grid: &[Vec<i64>],
     no_of_steps: i64,
 ) -> i64 {
-    // We enter from corner, because we know that over multiple grids this is the shortest path
-    // We should take the corner with the shortest distance to the corner
-    let top_left_corner = *distances_for_bigger_grid.first().unwrap().first().unwrap();
-    let top_right_corner = *distances_for_bigger_grid.first().unwrap().last().unwrap();
-
-    let (distance_to_corner, distances_map_from_corner) = if top_left_corner < top_right_corner {
-        (
-            top_left_corner,
-            run_dijkstra(
-                Point {
-                    row: bigger_grid.len() - 1,
-                    column: 0,
-                },
-                &bigger_grid,
-            ),
-        )
-    } else {
-        (
-            top_right_corner,
-            run_dijkstra(
-                Point {
-                    row: bigger_grid.len() - 1,
-                    column: bigger_grid[0].len() - 1,
-                },
-                &bigger_grid,
-            ),
-        )
-    };
+    // We enter from the middle cause it is empty
+    let distance_to_edge = bigger_grid.len() / 2;
+    let distances_map_from_edge = run_dijkstra(
+        Point {
+            row: bigger_grid.len() - 1,
+            column: bigger_grid[0].len() / 2,
+        },
+        &bigger_grid,
+    );
 
     visits_not_corner(
         bigger_grid,
         no_of_steps,
-        distance_to_corner,
-        distances_map_from_corner,
+        distance_to_edge as i64,
+        distances_map_from_edge,
     )
 }
 
@@ -325,35 +319,21 @@ fn bottom_grids(
     distances_for_bigger_grid: &[Vec<i64>],
     no_of_steps: i64,
 ) -> i64 {
-    // We enter from corner, because we know that over multiple grids this is the shortest path
-    // We should take the corner with the shortest distance to the corner
-    let bottom_left_corner = *distances_for_bigger_grid.last().unwrap().first().unwrap();
-    let bottom_right_corner = *distances_for_bigger_grid.last().unwrap().last().unwrap();
-
-    let (distance_to_corner, distances_map_from_corner) =
-        if bottom_left_corner < bottom_right_corner {
-            (
-                bottom_left_corner,
-                run_dijkstra(Point { row: 0, column: 0 }, &bigger_grid),
-            )
-        } else {
-            (
-                bottom_right_corner,
-                run_dijkstra(
-                    Point {
-                        row: 0,
-                        column: bigger_grid[0].len() - 1,
-                    },
-                    &bigger_grid,
-                ),
-            )
-        };
+    // We enter from the middle cause it is empty
+    let distance_to_edge = bigger_grid.len() / 2;
+    let distances_map_from_edge = run_dijkstra(
+        Point {
+            row: 0,
+            column: bigger_grid[0].len() / 2,
+        },
+        &bigger_grid,
+    );
 
     visits_not_corner(
         bigger_grid,
         no_of_steps,
-        distance_to_corner,
-        distances_map_from_corner,
+        distance_to_edge as i64,
+        distances_map_from_edge,
     )
 }
 
@@ -362,40 +342,21 @@ fn left_grids(
     distances_for_bigger_grid: &[Vec<i64>],
     no_of_steps: i64,
 ) -> i64 {
-    // We enter from corner, because we know that over multiple grids this is the shortest path
-    // We should take the corner with the shortest distance to the corner
-    let bottom_left_corner = *distances_for_bigger_grid.last().unwrap().first().unwrap();
-    let top_left_corner = *distances_for_bigger_grid.first().unwrap().first().unwrap();
-
-    let (distance_to_corner, distances_map_from_corner) = if bottom_left_corner < top_left_corner {
-        (
-            bottom_left_corner,
-            run_dijkstra(
-                Point {
-                    row: bigger_grid.len() - 1,
-                    column: bigger_grid[0].len() - 1,
-                },
-                &bigger_grid,
-            ),
-        )
-    } else {
-        (
-            top_left_corner,
-            run_dijkstra(
-                Point {
-                    row: 0,
-                    column: bigger_grid[0].len() - 1,
-                },
-                &bigger_grid,
-            ),
-        )
-    };
+    // We enter from the middle cause it is empty
+    let distance_to_edge = bigger_grid.len() / 2;
+    let distances_map_from_edge = run_dijkstra(
+        Point {
+            row: bigger_grid[0].len() / 2,
+            column: bigger_grid[0].len() - 1,
+        },
+        &bigger_grid,
+    );
 
     visits_not_corner(
         bigger_grid,
         no_of_steps,
-        distance_to_corner,
-        distances_map_from_corner,
+        distance_to_edge as i64,
+        distances_map_from_edge,
     )
 }
 
@@ -404,43 +365,29 @@ fn right_grids(
     distances_for_bigger_grid: &[Vec<i64>],
     no_of_steps: i64,
 ) -> i64 {
-    // We enter from corner, because we know that over multiple grids this is the shortest path
-    // We should take the corner with the shortest distance to the corner
-    let bottom_right_corner = *distances_for_bigger_grid.last().unwrap().last().unwrap();
-    let top_right_corner = *distances_for_bigger_grid.first().unwrap().last().unwrap();
-
-    let (distance_to_corner, distances_map_from_corner) = if bottom_right_corner < top_right_corner
-    {
-        (
-            bottom_right_corner,
-            run_dijkstra(
-                Point {
-                    row: bigger_grid.len() - 1,
-                    column: 0,
-                },
-                &bigger_grid,
-            ),
-        )
-    } else {
-        (
-            top_right_corner,
-            run_dijkstra(Point { row: 0, column: 0 }, &bigger_grid),
-        )
-    };
+    // We enter from the middle cause it is empty
+    let distance_to_edge = bigger_grid.len() / 2;
+    let distances_map_from_edge = run_dijkstra(
+        Point {
+            row: bigger_grid[0].len() / 2,
+            column: 0,
+        },
+        &bigger_grid,
+    );
 
     visits_not_corner(
         bigger_grid,
         no_of_steps,
-        distance_to_corner,
-        distances_map_from_corner,
+        distance_to_edge as i64,
+        distances_map_from_edge,
     )
 }
 
 fn visits_not_corner(
     bigger_grid: &Vec<Vec<bool>>,
     no_of_steps: i64,
-    distance_to_corner: i64,
-    distances_map_from_corner: Vec<Vec<i64>>,
+    distance_to_edge: i64,
+    distances_map_from_edge: Vec<Vec<i64>>,
 ) -> i64 {
     let no_of_steps_is_even = no_of_steps % 2 == 0;
     let mut no_of_possible_visits = 0;
@@ -450,16 +397,16 @@ fn visits_not_corner(
         cumulative_odd_distances_lookup_map,
         no_of_even_distances_from_corner,
         no_of_odd_distances_from_corner,
-    ) = get_distances_lookup(distances_map_from_corner);
+    ) = get_distances_lookup(distances_map_from_edge);
 
-    let distance_to_the_grid_above = 1 + distance_to_corner;
-    let no_of_grids_above =
-        (no_of_steps - distance_to_the_grid_above) / bigger_grid[0].len() as i64;
-    let distance_to_the_top_grid =
-        distance_to_the_grid_above + no_of_grids_above * bigger_grid[0].len() as i64;
+    let distance_to_next_grid = 1 + distance_to_edge;
+    let no_of_grids_to_the_end =
+        (no_of_steps - distance_to_next_grid) / bigger_grid[0].len() as i64 + 1;
+    let distance_to_the_last_grid =
+        distance_to_next_grid + (no_of_grids_to_the_end - 1) * bigger_grid[0].len() as i64;
 
     {
-        let remaining_distance_in_last_grid = no_of_steps - distance_to_the_top_grid;
+        let remaining_distance_in_last_grid = no_of_steps - distance_to_the_last_grid;
 
         if remaining_distance_in_last_grid % 2 == 0 {
             no_of_possible_visits += *cumulative_even_distances_lookup_map
@@ -478,10 +425,11 @@ fn visits_not_corner(
         }
     }
 
-    let distance_to_the_second_to_top_grid = distance_to_the_top_grid - bigger_grid[0].len() as i64;
+    let distance_to_the_second_to_last_grid =
+        distance_to_the_last_grid - bigger_grid[0].len() as i64;
     {
         let remaining_distance_in_second_to_last_grid =
-            no_of_steps - distance_to_the_second_to_top_grid;
+            no_of_steps - distance_to_the_second_to_last_grid;
 
         if remaining_distance_in_second_to_last_grid % 2 == 0 {
             no_of_possible_visits += *cumulative_even_distances_lookup_map
@@ -495,12 +443,12 @@ fn visits_not_corner(
     }
 
     // Strong assumption that only last and one before last grid can be not fully filled
-    let no_of_full_grids = no_of_grids_above - 1;
+    let no_of_full_grids = no_of_grids_to_the_end - 2;
 
-    no_of_possible_visits += no_of_full_grids / 2 * no_of_even_distances_from_corner
-        + no_of_full_grids / 2 * no_of_odd_distances_from_corner;
+    no_of_possible_visits += (no_of_full_grids / 2)
+        * (no_of_even_distances_from_corner + no_of_odd_distances_from_corner);
     if no_of_full_grids % 2 == 1 {
-        if no_of_steps_is_even {
+        if !no_of_steps_is_even {
             no_of_possible_visits += no_of_even_distances_from_corner;
         } else {
             no_of_possible_visits += no_of_odd_distances_from_corner;
@@ -618,21 +566,20 @@ fn no_of_visits_for_corner(
 
         let distance_to_the_proper_row =
             1 + 1 + distance_to_corner + rows_to_add * no_of_rows_in_bigger_grid;
-        let no_of_grids_in_row_to_the_right_to_the_last_grid =
-            (no_of_steps - distance_to_the_proper_row) / no_of_columns_in_bigger_grid;
-
-        if no_of_grids_in_row_to_the_right_to_the_last_grid <= 0 {
+        if no_of_steps < distance_to_the_proper_row {
             println!("Break after checking {} rows above", rows_to_add);
             break;
         }
 
-        let distance_to_the_last_grid_to_the_right = distance_to_the_proper_row
-            + no_of_grids_in_row_to_the_right_to_the_last_grid * no_of_columns_in_bigger_grid;
+        let no_of_grids_in_row_to_the_right_to_the_last_grid =
+            (no_of_steps - distance_to_the_proper_row) / no_of_columns_in_bigger_grid + 1;
+
+        let distance_to_the_last_grid_in_row = distance_to_the_proper_row
+            + (no_of_grids_in_row_to_the_right_to_the_last_grid - 1) * no_of_columns_in_bigger_grid;
 
         // Add the visited in the last grid
         {
-            let remaining_distance_in_last_grid =
-                no_of_steps - distance_to_the_last_grid_to_the_right;
+            let remaining_distance_in_last_grid = no_of_steps - distance_to_the_last_grid_in_row;
 
             if remaining_distance_in_last_grid % 2 == 0 {
                 no_of_possible_visits += *cumulative_even_distances_lookup_map
@@ -651,35 +598,37 @@ fn no_of_visits_for_corner(
             }
         }
 
-        let distance_to_the_second_to_last_grid_to_the_right =
-            distance_to_the_last_grid_to_the_right - no_of_columns_in_bigger_grid;
+        if no_of_grids_in_row_to_the_right_to_the_last_grid > 1 {
+            let distance_to_the_second_to_last_grid_to_the_right =
+                distance_to_the_last_grid_in_row - no_of_columns_in_bigger_grid;
 
-        // Add the previous to last visited
-        {
-            let remaining_distance_in_second_to_last_grid =
-                no_of_steps - distance_to_the_second_to_last_grid_to_the_right;
+            // Add the previous to last visited
+            {
+                let remaining_distance_in_second_to_last_grid =
+                    no_of_steps - distance_to_the_second_to_last_grid_to_the_right;
 
-            if remaining_distance_in_second_to_last_grid % 2 == 0 {
-                no_of_possible_visits += *cumulative_even_distances_lookup_map
-                    .get(&(remaining_distance_in_second_to_last_grid as usize))
-                    .unwrap_or(&no_of_even_distances_from_corner);
-            } else {
-                no_of_possible_visits += *cumulative_odd_distances_lookup_map
-                    .get(&(remaining_distance_in_second_to_last_grid as usize))
-                    .unwrap_or(&no_of_odd_distances_from_corner);
+                if remaining_distance_in_second_to_last_grid % 2 == 0 {
+                    no_of_possible_visits += *cumulative_even_distances_lookup_map
+                        .get(&(remaining_distance_in_second_to_last_grid as usize))
+                        .unwrap_or(&no_of_even_distances_from_corner);
+                } else {
+                    no_of_possible_visits += *cumulative_odd_distances_lookup_map
+                        .get(&(remaining_distance_in_second_to_last_grid as usize))
+                        .unwrap_or(&no_of_odd_distances_from_corner);
+                }
             }
-        }
 
-        // Strong assumption that only last and one before last grid can be not fully filled
-        let no_of_full_grids = no_of_grids_in_row_to_the_right_to_the_last_grid - 1;
+            // Strong assumption that only last and one before last grid can be not fully filled
+            let no_of_full_grids = no_of_grids_in_row_to_the_right_to_the_last_grid - 2;
 
-        no_of_possible_visits += (no_of_full_grids / 2)
-            * (no_of_even_distances_from_corner + no_of_odd_distances_from_corner);
-        if no_of_full_grids % 2 == 1 {
-            if no_of_steps_is_even {
-                no_of_possible_visits += no_of_even_distances_from_corner;
-            } else {
-                no_of_possible_visits += no_of_odd_distances_from_corner;
+            no_of_possible_visits += (no_of_full_grids / 2)
+                * (no_of_even_distances_from_corner + no_of_odd_distances_from_corner);
+            if no_of_full_grids % 2 == 1 {
+                if !no_of_steps_is_even {
+                    no_of_possible_visits += no_of_even_distances_from_corner;
+                } else {
+                    no_of_possible_visits += no_of_odd_distances_from_corner;
+                }
             }
         }
 
@@ -712,7 +661,7 @@ fn get_distances_lookup(
     let mut even_distances_sum = 0;
     let mut odd_distances_sum = 0;
 
-    for i in 0..biggest_distance_in_grid {
+    for i in 0..=biggest_distance_in_grid {
         if i % 2 == 0 {
             even_distances_sum += distances_lookup_map[i];
             cumulative_even_distances_lookup_map.insert(i, even_distances_sum);
